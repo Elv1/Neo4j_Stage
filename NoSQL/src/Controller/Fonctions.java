@@ -9,18 +9,29 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.tooling.GlobalGraphOperations;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.Uniqueness;
 
 import Model.DB;
 
-public class Fonctions {
+public class Fonctions{
 	private DB graphDB;
 	
 	
 	public Fonctions(DB graph){
 		this.graphDB=graph;
 	}
+	
+
 	
 	//Methode de recuperation des noms des Noeuds
 	public String getNodes(){
@@ -570,32 +581,84 @@ public class Fonctions {
 	    return resultatText;
 	}
 	
-	
-	/*public String DiversitéEtendue(){
-		String Resultat="";
-		ArrayList<Node> listNodes = new ArrayList<Node>();
-		try (Transaction tx =  graphDB.getGrpah().beginTx())
-	    {
-	    	
-	        for ( Node node : GlobalGraphOperations.at( graphDB.getGrpah() ).getAllNodes() )
-	        {
-	        	
-	       	 	listNodes.add( node );
-	        }
-	        for(Node e : listNodes){
-	        	
-	       	 	for(Label l : e.getLabels()){
-	       	 	
-       	 			if(!Resultat.contains(l.name().toString())){
-       	 				Resultat +=l.name().toString()+"\n";
-       	 			}
-       	 		}
-       	 	}
-	        tx.success();
-		return Resultat;
+	public ArrayList<Node> getNodeByLabel(String label){
+		ArrayList<Node> resultat = new ArrayList<Node>();
+		for(Node n : GlobalGraphOperations.at(  graphDB.getGrpah() ).getAllNodes()){
+			for(Label l : n.getLabels()){
+				if(l.name().equals(label)){
+					resultat.add(n);
+				}
+			}
+		}
+		return resultat;
 	}
-}
-	public void noeudDepart(ArrayList<String> Noeuds){
+	
+	public RelationshipType getRelationshipByName(String name){
+		RelationshipType resultat = null;
+		for(RelationshipType r : GlobalGraphOperations.at(  graphDB.getGrpah() ).getAllRelationshipTypes()){
+			if(r.name().equals(name)){
+				resultat = r;
+			}
+		}
+		return resultat;
+	}
+	
+	
+	public String patternTraversal(String startNode, ArrayList<String> Noeuds, ArrayList<String> Relations){
+		String resultat = "";
+		System.out.println(startNode);
+		System.out.println(Relations.get(0));
+		System.out.println(Noeuds.size());
 		
-	}*/
+        try (Transaction tx = graphDB.beginTx())
+        {
+    		ArrayList<Node> noeudDepart=this.getNodeByLabel(startNode);
+			System.out.println(noeudDepart.isEmpty());
+
+        	//TraversalDescription td = graphDB.traversalDescription();
+        	for(Node n : noeudDepart){
+	        	for(Path position : graphDB.traversalDescription()
+	        			.depthFirst()
+	        			.relationships(this.getRelationshipByName(Relations.get(0)), Direction.OUTGOING)
+	        			.evaluator(Evaluators.fromDepth(Noeuds.size()))
+	        			.evaluator(Evaluators.toDepth(Noeuds.size()))
+	        			.traverse(n))
+	        	{
+	        		resultat += position +"\n";
+	        		System.out.println("Hello3");
+	        		System.out.println(resultat);
+	        	}
+        	}
+        	tx.success();
+        }
+        
+		return resultat;
+	}
+	
+//	public TraversalDescription findPath(ArrayList<String> Relations){
+//		final ArrayList<RelationshipType> orderPathContext = new ArrayList<RelationshipType>();
+//		for(int i = 0; i<Relations.size(); i++){
+//			orderPathContext.add(Relations[i]);
+//		}
+//		return null;
+//	}
+//	public String DiversitéEtendue(){
+//		String Resultat="";
+//		ArrayList<Node> listNodes = new ArrayList<Node>();
+//		try (Transaction tx =  graphDB.getGrpah().beginTx())
+//	    {
+//	    	
+//	       {
+//	    	  TraversalDescription friendsTraversal = graphDB.traversalDescription()
+//	    		        .depthFirst()
+//	    		        .relationships( Rels.KNOWS )
+//	    		        .uniqueness( Uniqueness.RELATIONSHIP_GLOBAL );
+//	       }
+//	        tx.success();
+//		return Resultat;
+//	}
+//}
+//	public void noeudDepart(ArrayList<String> Noeuds){
+//		
+//	}
 }
